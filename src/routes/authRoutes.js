@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 
 const { db } = require("../config/firebase");
+const { register, login } = require("../controllers/authController");
 
 router.get("/test", (req, res) => {
   res.json({
@@ -32,5 +33,9 @@ router.get("/firebase-test", async (req, res) => {
     });
   }
 });
+
+// auth routes
+router.post("/register", register);
+router.post("/login", login);
 
 module.exports = router;
