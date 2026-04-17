@@ -9,7 +9,7 @@ app.use(express.json());
 
 // test route
 app.get("/", (req, res) => {
-  res.send("API is running...");
+  res.send("Hurry API is running...");
 });
 
 // routes
