@@ -1,126 +1,60 @@
-const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const { db } = require("../config/firebase");
+const bcrypt = require('bcryptjs');
+const { db } = require('../config/firebase');
+const ROLES = require('../constants/roles');
 
-// Get user
-const getUserByEmail = async (email) => {
-  const snapshot = await db
-    .collection("users")
-    .where("email", "==", email)
-    .get();
-
-  if (snapshot.empty) return null;
-
-  return {
-    id: snapshot.docs[0].id,
-    ...snapshot.docs[0].data(),
-  };
-};
-
-// Login
-const login = async (req, res) => {
+exports.register = async (req, res) => {
   try {
-    const { email, password } = req.body;
-
-    const user = await getUserByEmail(email);
-
-    if (!user) {
-      return res.status(401).json({
-        message: 'Invalid email or password',
-      });
+    const { name, email, password } = req.body;
+    
+    // Check if user already exists
+    const userSnapshot = await db.collection('users').where('email', '==', email).get();
+    if (!userSnapshot.empty) {
+      return res.status(400).json({ message: 'Email already registered.' });
     }
 
-    const isMatch = await bcrypt.compare(password, user.password);
-
-    if (!isMatch) {
-      return res.status(401).json({
-        message: 'Invalid email or password',
-      });
-    }
-
-    const token = jwt.sign(
-      {
-        id: user.id,
-        email: user.email,
-        role: user.role,
-      },
-      process.env.JWT_SECRET,
-      { expiresIn: '1d' }
-    );
-
-    res.status(200).json({
-      message: 'Login successful',
-      token,
-      user: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-      },
-    });
-
-  } catch (error) {
-    res.status(500).json({
-      message: error.message,
-    });
-  }
-};
-
-const register = async (req, res) => {
-  try {
-    const { name, email, password, role } = req.body;
-
-    // 1. Validate input
-    if (!name || !email || !password) {
-      return res.status(400).json({
-        message: "Name, email, and password are required",
-      });
-    }
-
-    // 2. Check if user already exists
-    const existingUser = await getUserByEmail(email);
-
-    if (existingUser) {
-      return res.status(409).json({
-        message: "User already exists with this email",
-      });
-    }
-
-    // 3. Hash password
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
-
-    // 4. Create user object
+    const hashedPassword = await bcrypt.hash(password, 10);
+    
+    // Force role to STUDENT
     const newUser = {
       name,
       email,
       password: hashedPassword,
-      role: role || "user", // default role
-      createdAt: new Date().toISOString(),
+      role: ROLES.STUDENT,
+      createdAt: new Date().toISOString()
     };
 
-    // 5. Save to Firestore
-    const docRef = await db.collection("users").add(newUser);
+    const docRef = await db.collection('users').add(newUser);
 
-    // 6. Return response (no password)
-    res.status(201).json({
-      message: "User registered successfully",
-      user: {
-        id: docRef.id,
-        name,
-        email,
-        role: newUser.role,
-      },
-    });
-
+    res.status(201).json({ message: 'Student registered successfully', user: { id: docRef.id, email, role: ROLES.STUDENT } });
   } catch (error) {
-    res.status(500).json({
-      message: error.message,
-    });
+    res.status(500).json({ error: error.message });
   }
 };
 
-module.exports = {
-  register,
-  login,
+exports.login = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    
+    const userSnapshot = await db.collection('users').where('email', '==', email).get();
+    if (userSnapshot.empty) {
+      return res.status(404).json({ message: 'Invalid email or password.' });
+    }
+
+    const userData = userSnapshot.docs[0].data();
+    const userId = userSnapshot.docs[0].id;
+
+    const isMatch = await bcrypt.compare(password, userData.password);
+    if (!isMatch) return res.status(401).json({ message: 'Invalid email or password.' });
+
+    const token = jwt.sign(
+      { id: userId, email: userData.email, role: userData.role },
+      process.env.JWT_SECRET,
+      { expiresIn: '1d' }
+    );
+
+    res.status(200).json({ message: 'Login successful', token, role: userData.role });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 };
