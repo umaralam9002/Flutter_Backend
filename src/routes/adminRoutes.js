@@ -9,6 +9,9 @@ router.use(authMiddleware);
 router.use(roleMiddleware(ROLES.ADMIN));
 
 router.post('/users', adminController.createUser);
+router.get('/dashboard/stats', adminController.getDashboardStats);
+router.get('/dashboard/recent-registrations', adminController.getRecentRegistrations);
+router.get('/dashboard/classes-overview', adminController.getClassesOverview);
 router.get('/users/:id', adminController.getUserById);
 router.get('/users/email/:email', adminController.getUserByEmail);
 router.put('/users/:id', adminController.updateUser);
