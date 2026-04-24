@@ -27,4 +27,7 @@ router.post('/classes/:classId/attendance/mark-all', teacherController.markAllAt
 router.get('/classes/:classId/attendance', teacherController.getAttendanceByDate);
 router.get('/classes/:classId/attendance-summary', teacherController.getStudentSummary);
 
+// Download CSV for attendance on a specific date
+router.get('/classes/:classId/attendance/download', teacherController.downloadAttendanceCSV);
+
 module.exports = router;
