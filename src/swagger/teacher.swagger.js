@@ -297,3 +297,33 @@
  *       200:
  *         description: Attendance summary
  */
+
+/**
+ * @swagger
+ * /api/teacher/classes/{classId}/attendance/download:
+ *   get:
+ *     summary: Download attendance as CSV for a specific date
+ *     tags: [Teacher]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: classId
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: date
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: CSV file attachment
+ *         content:
+ *           text/csv:
+ *             schema:
+ *               type: string
+ *               format: binary
+ */
+// note: class-level summary endpoint removed; use /attendance-summary for per-student summary

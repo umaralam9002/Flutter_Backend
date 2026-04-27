@@ -512,3 +512,133 @@ exports.markAllAttendance = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+// Download attendance for a specific date as CSV
+exports.downloadAttendanceCSV = async (req, res) => {
+  try {
+    const { classId } = req.params;
+    const { date } = req.query;
+
+    if (!date) {
+      return res.status(400).json({ message: 'Date query parameter is required.' });
+    }
+
+    // 1. Verify class ownership
+    const classSnapshot = await db.collection('classes').doc(classId).get();
+    if (!classSnapshot.exists || classSnapshot.data().teacherId !== req.user.id) {
+      return res.status(403).json({ message: 'Unauthorized or class not found.' });
+    }
+
+    const classData = classSnapshot.data();
+
+    // 2. Get attendance
+    const attendanceSnap = await db.collection('attendance')
+      .where('classId', '==', classId)
+      .where('date', '==', date)
+      .get();
+
+    if (attendanceSnap.empty) {
+      return res.status(404).json({ message: 'No attendance found for this date.' });
+    }
+
+    const attendance = attendanceSnap.docs[0].data();
+
+    // 3. Prepare table data
+    const { arrayToCsv } = require('../utils/csvExport');
+
+    const headers = ['studentName', 'rollNo', 'status'];
+    const rows = attendance.records.map(r => ({
+      studentName: r.studentName,
+      rollNo: r.rollNo,
+      status: r.status
+    }));
+
+    const tableCsv = arrayToCsv(headers, rows);
+
+    // 4. Calculate per-date summary
+    let present = 0;
+    let absent = 0;
+
+    attendance.records.forEach(r => {
+      if (r.status.toLowerCase() === 'present') present++;
+      else absent++;
+    });
+
+
+    // 5. Build final CSV (per-date summary above attendance table)
+    let finalCsv = "";
+
+    // Header section
+    finalCsv += `Class: ${classData.subjectName}\r\n`;
+    finalCsv += `Semester: ${classData.semester} (${classData.semesterNumber})\r\n`;
+    finalCsv += `Section: ${classData.sections}\r\n`;
+    finalCsv += `Date: ${date}\r\n`;
+
+    // Per-date Summary (placed below Date, above attendance table)
+    finalCsv += `\r\nSummary\r\n`;
+    finalCsv += `Total Students,${attendance.records.length}\r\n`;
+    finalCsv += `Present,${present}\r\n`;
+    finalCsv += `Absent,${absent}\r\n`;
+
+    // Blank line then Table
+    finalCsv += `\r\n`;
+    finalCsv += tableCsv;
+
+    // 6. Append All-time Student Summary (aggregated across all attendance records)
+    // Build student map from class_students
+    const studentsSnap = await db.collection('class_students').where('classId', '==', classId).get();
+    const summaryMap = {};
+    studentsSnap.forEach(doc => {
+      const d = doc.data();
+      summaryMap[d.studentId] = {
+        Name: d.studentName,
+        Total: 0,
+        Present: 0,
+        Absent: 0,
+        Percentage: 0
+      };
+    });
+
+    // Fetch all attendance for this class and aggregate
+    const allAttendanceSnap = await db.collection('attendance').where('classId', '==', classId).get();
+    allAttendanceSnap.forEach(doc => {
+      const a = doc.data();
+      a.records.forEach(r => {
+        if (summaryMap[r.studentId]) {
+          summaryMap[r.studentId].Total += 1;
+          if (r.status && r.status.toLowerCase() === 'present') summaryMap[r.studentId].Present += 1;
+          else summaryMap[r.studentId].Absent += 1;
+        }
+      });
+    });
+
+    // Compute percentage and prepare rows
+    const summaryHeaders = ['Name', 'Total', 'Present', 'Absent', 'Percentage'];
+    const summaryRows = Object.values(summaryMap).map(s => {
+      const pct = s.Total > 0 ? Math.round((s.Present / s.Total) * 100) : 0;
+      return {
+        Name: s.Name,
+        Total: s.Total,
+        Present: s.Present,
+        Absent: s.Absent,
+        Percentage: pct + '%'
+      };
+    });
+
+    // Sort by Name for consistent output
+    summaryRows.sort((a, b) => (a.Name || '').localeCompare(b.Name || ''));
+
+    // Convert to CSV and append
+    finalCsv += `\r\n\r\nStudent Summary (All Time)\r\n`;
+    finalCsv += arrayToCsv(summaryHeaders, summaryRows);
+
+    // 6. Send CSV response 
+    const filename = `attendance-Class-${classData.semesterNumber}-${classData.sections}-Semester-${classData.semester}.csv`;
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.status(200).send(finalCsv);
+
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};

@@ -8,7 +8,6 @@ const app = express();
 
 // middleware
 app.use(cors());
-app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 app.use(express.json());
 
 // test route
