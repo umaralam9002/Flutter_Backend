@@ -8,6 +8,50 @@
 /**
  * @swagger
  * /api/admin/users:
+ *   get:
+ *     summary: Get all users (Admin only)
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: role
+ *         required: false
+ *         schema:
+ *           type: string
+ *           enum: [STUDENT, TEACHER, ADMIN]
+ *         description: Filter users by role
+ *     responses:
+ *       200:
+ *         description: List of users fetched successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   id:
+ *                     type: string
+ *                     example: user123
+ *                   name:
+ *                     type: string
+ *                     example: Umar
+ *                   email:
+ *                     type: string
+ *                     example: umar@gmail.com
+ *                   role:
+ *                     type: string
+ *                     example: STUDENT
+ *       400:
+ *         description: Invalid role provided
+ *       500:
+ *         description: Internal server error
+ */
+
+/**
+ * @swagger
+ * /api/admin/users:
  *   post:
  *     summary: Create a new user (Admin only)
  *     tags: [Admin]
@@ -182,4 +226,70 @@
  *         description: User deleted successfully
  *       404:
  *         description: User not found
+ */
+
+/**
+ * @swagger
+ * /api/admin/profile:
+ *   get:
+ *     summary: Get logged-in admin profile
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Profile fetched successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 id:
+ *                   type: string
+ *                   example: user123
+ *                 name:
+ *                   type: string
+ *                   example: Umar
+ *                 email:
+ *                   type: string
+ *                   example: umar@gmail.com
+ *                 role:
+ *                   type: string
+ *                   example: ADMIN
+ *       404:
+ *         description: Profile not found
+ *       500:
+ *         description: Internal server error
+ */
+
+/**
+ * @swagger
+ * /api/admin/profile:
+ *   put:
+ *     summary: Update logged-in admin profile
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 example: Umar
+ *               password:
+ *                 type: string
+ *                 example: newpassword123
+ *     responses:
+ *       200:
+ *         description: Profile updated successfully
+ *       400:
+ *         description: No valid fields provided for update
+ *       404:
+ *         description: Profile not found
+ *       500:
+ *         description: Internal server error
  */

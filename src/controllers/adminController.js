@@ -87,6 +87,31 @@ exports.deleteUser = async (req, res) => {
   }
 };
 
+exports.getAllUsers = async (req, res) => {
+  try {
+    const { role } = req.query;
+    let query = db.collection('users');
+
+    if (role) {
+      if (![ROLES.STUDENT, ROLES.TEACHER, ROLES.ADMIN].includes(role)) {
+        return res.status(400).json({ message: 'Invalid role provided.' });
+      }
+      query = query.where('role', '==', role);
+    }
+
+    const snapshot = await query.get();
+    const users = snapshot.docs.map((doc) => {
+      const userData = doc.data();
+      delete userData.password;
+      return { id: doc.id, ...userData };
+    });
+
+    res.status(200).json(users);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
 // 1. Get Dashboard Statistics (Total Students, Teachers, Admins, Users)
 exports.getDashboardStats = async (req, res) => {
   try {
@@ -197,6 +222,42 @@ exports.getClassesOverview = async (req, res) => {
     }));
 
     res.status(200).json({ classesOverview });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+exports.getProfile = async (req, res) => {
+  try {
+    const doc = await db.collection('users').doc(req.user.id).get();
+    if (!doc.exists) return res.status(404).json({ message: 'Profile not found.' });
+    
+    const userData = doc.data();
+    delete userData.password;
+    res.status(200).json({ id: doc.id, ...userData });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+exports.updateProfile = async (req, res) => {
+  try {
+    const { name, password } = req.body;
+    const updateData = {};
+    
+    if (name) updateData.name = name;
+    if (password) updateData.password = await bcrypt.hash(password, 10);
+
+    if (Object.keys(updateData).length === 0) {
+      return res.status(400).json({ message: 'Provide name or password to update.' });
+    }
+
+    const userRef = db.collection('users').doc(req.user.id);
+    const doc = await userRef.get();
+    if (!doc.exists) return res.status(404).json({ message: 'Profile not found.' });
+
+    await userRef.update(updateData);
+    res.status(200).json({ message: 'Profile updated successfully' });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

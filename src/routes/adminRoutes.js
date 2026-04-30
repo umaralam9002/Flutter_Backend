@@ -8,6 +8,10 @@ const ROLES = require('../constants/roles');
 router.use(authMiddleware);
 router.use(roleMiddleware(ROLES.ADMIN));
 
+router.get('/profile', adminController.getProfile);
+router.put('/profile', adminController.updateProfile);
+
+router.get('/users', adminController.getAllUsers);
 router.post('/users', adminController.createUser);
 router.get('/dashboard/stats', adminController.getDashboardStats);
 router.get('/dashboard/recent-registrations', adminController.getRecentRegistrations);
