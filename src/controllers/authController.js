@@ -1,6 +1,6 @@
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
-const { db } = require('../config/firebase');
+const { admin,db } = require('../config/firebase');
 const ROLES = require('../constants/roles');
 
 exports.register = async (req, res) => {
@@ -56,5 +56,66 @@ exports.login = async (req, res) => {
     res.status(200).json({ message: 'Login successful', token, role: userData.role });
   } catch (error) {
     res.status(500).json({ error: error.message });
+  }
+};
+
+exports.googleLogin = async (req, res) => {
+  try {
+    const { token } = req.body;
+
+    //  Firebase token verify
+    const decoded = await admin.auth().verifyIdToken(token);
+
+    const { email, name, uid } = decoded;
+
+    //  check user exist
+    const userSnapshot = await db.collection('users')
+      .where('email', '==', email)
+      .get();
+
+    let userId;
+    let userData;
+
+    if (userSnapshot.empty) {
+      //  New Google user
+      const newUser = {
+        name: name || "Google User",
+        email,
+        role: ROLES.STUDENT,
+        googleId: uid,
+        createdAt: new Date().toISOString()
+      };
+
+      const docRef = await db.collection('users').add(newUser);
+      userId = docRef.id;
+      userData = newUser;
+
+    } else {
+      //  Existing user
+      userId = userSnapshot.docs[0].id;
+      userData = userSnapshot.docs[0].data();
+
+      if (!userData.googleId) {
+        await db.collection('users').doc(userId).update({
+          googleId: uid
+        });
+      }
+    }
+
+    //  JWT generate
+    const jwtToken = jwt.sign(
+      { id: userId, email: userData.email, role: userData.role },
+      process.env.JWT_SECRET,
+      { expiresIn: '1d' }
+    );
+
+    res.status(200).json({
+      message: 'Google login successful',
+      token: jwtToken,
+      role: userData.role
+    });
+
+  } catch (error) {
+    res.status(401).json({ message: 'Invalid Google token' });
   }
 };
