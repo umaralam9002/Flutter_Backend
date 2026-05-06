@@ -642,3 +642,48 @@ exports.downloadAttendanceCSV = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+// Get total number of classes for dashboard
+exports.getDashboardTotalClasses = async (req, res) => {
+  try {
+    const teacherId = req.user.id;
+    const classesSnapshot = await db.collection('classes').where('teacherId', '==', teacherId).get();
+    const totalClasses = classesSnapshot.size;
+
+    res.status(200).json({ data: { totalClasses } });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// Search classes
+exports.searchClasses = async (req, res) => {
+  try {
+    const teacherId = req.user.id;
+    const { query } = req.query;
+
+    if (!query) {
+      return res.status(400).json({ message: 'Search query required' });
+    }
+
+    const snapshot = await db.collection('classes')
+      .where('teacherId', '==', teacherId)
+      .get();
+
+    const search = query.toLowerCase();
+
+    const results = snapshot.docs
+      .map(doc => doc.data())
+      .filter(cls =>
+        (cls.subjectName || '').toLowerCase().includes(search) ||
+        (cls.semester || '').toLowerCase().includes(search) ||
+        (Array.isArray(cls.sections) ? cls.sections.join(' ').toLowerCase() : String(cls.sections || '')).includes(search) ||
+        String(cls.semesterNumber || '').includes(search)
+      );
+
+    res.status(200).json({ data: results });
+
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};

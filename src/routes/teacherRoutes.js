@@ -13,6 +13,10 @@ router.put('/profile', teacherController.updateSelf);
 // Class routes
 router.post('/classes', teacherController.createClass);
 router.get('/classes', teacherController.getMyClasses);
+router.get('/classes/search', teacherController.searchClasses);
+
+// Dashboard routes
+router.get('/dashboard/total-classes', teacherController.getDashboardTotalClasses);
 
 // Student verification
 router.get('/verify-student', teacherController.verifyStudentEmail);
