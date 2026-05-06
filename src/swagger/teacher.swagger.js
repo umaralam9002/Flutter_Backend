@@ -78,6 +78,74 @@
 
 /**
  * @swagger
+ * /api/teacher/classes/search:
+ *   get:
+ *     summary: Search classes for the logged-in teacher
+ *     tags: [Teacher]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: query
+ *         required: true
+ *         schema:
+ *           type: string
+ *           example: math
+ *     responses:
+ *       200:
+ *         description: List of matching classes
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: string
+ *                       teacherId:
+ *                         type: string
+ *                       semesterNumber:
+ *                         type: number
+ *                       semester:
+ *                         type: string
+ *                       subjectName:
+ *                         type: string
+ *                       sections:
+ *                         type: array
+ *                         items:
+ *                           type: string
+ */
+
+/**
+ * @swagger
+ * /api/teacher/dashboard/total-classes:
+ *   get:
+ *     summary: Get total number of classes for the logged-in teacher (dashboard)
+ *     tags: [Teacher]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Total classes count
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     totalClasses:
+ *                       type: integer
+ *                       example: 5
+ */
+
+/**
+ * @swagger
  * /api/teacher/verify-student:
  *   get:
  *     summary: Verify student by email
