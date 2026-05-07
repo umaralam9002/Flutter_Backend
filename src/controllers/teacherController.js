@@ -1,13 +1,51 @@
 const { db } = require('../config/firebase');
 const bcrypt = require('bcryptjs');
 
+// exports.updateSelf = async (req, res) => {
+//   try {
+//     const { name, password} = req.body;
+    
+//     // if (email || role) {
+//     //   return res.status(400).json({ message: 'Cannot update email or role.' });
+//     // }
+
+//     const updateData = {};
+//     if (name) updateData.name = name;
+//     if (password) updateData.password = await bcrypt.hash(password, 10);
+
+//     await db.collection('users').doc(req.user.id).update(updateData);
+//     res.status(200).json({ message: 'Profile updated successfully' });
+//   } catch (error) {
+//     res.status(500).json({ error: error.message });
+//   }
+// };
+exports.getProfile = async (req, res) => {
+  try {
+    const userDoc = await db.collection('users').doc(req.user.id).get();
+
+    if (!userDoc.exists) {
+      return res.status(404).json({ message: 'User not found.' });
+    }
+
+    const userData = userDoc.data();
+
+    // Remove sensitive fields before sending
+    delete userData.password;
+    delete userData.googleId;
+
+    res.status(200).json({
+      data: {
+        id: userDoc.id,
+        ...userData
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
 exports.updateSelf = async (req, res) => {
   try {
-    const { name, password} = req.body;
-    
-    // if (email || role) {
-    //   return res.status(400).json({ message: 'Cannot update email or role.' });
-    // }
+    const { name, password } = req.body;
 
     const updateData = {};
     if (name) updateData.name = name;

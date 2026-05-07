@@ -8,7 +8,9 @@ const ROLES = require('../constants/roles');
 router.use(authMiddleware);
 router.use(roleMiddleware(ROLES.TEACHER));
 
-router.put('/profile', teacherController.updateSelf);
+// teacher.routes.js
+router.get('/profile',  authMiddleware, teacherController.getProfile);
+router.put('/profile',  authMiddleware, teacherController.updateSelf);
 
 // Class routes
 router.post('/classes', teacherController.createClass);
