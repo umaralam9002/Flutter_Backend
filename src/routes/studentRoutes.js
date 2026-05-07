@@ -15,5 +15,7 @@ router.put('/profile', studentController.updateSelf);
 // Classes & Attendance
 router.get('/classes', studentController.getMyClasses);
 router.get('/attendance', studentController.getAllAttendance);
+// Detailed attendance for a class (per-student)
+router.get('/classes/:classId/attendance', studentController.getClassAttendance);
 
 module.exports = router;

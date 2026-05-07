@@ -17,21 +17,48 @@ exports.getProfile = async (req, res) => {
   }
 };
 
-// Update own profile - students may only change password
+// Update own profile - students can change username + password
+
 exports.updateSelf = async (req, res) => {
   try {
-    const { password } = req.body;
+    const { name, password } = req.body;
 
-    if (!password) {
-      return res.status(400).json({ message: 'Please provide a new password.' });
+    const updateData = {};
+
+    // Update name if provided
+    if (name && name.trim() !== '') {
+      updateData.name = name.trim();
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
-    await db.collection('users').doc(req.user.id).update({ password: hashedPassword });
+    // Update password if provided
+    if (password && password.trim() !== '') {
+      if (password.length < 6) {
+        return res.status(400).json({
+          message: 'Password must be at least 6 characters long.',
+        });
+      }
 
-    res.status(200).json({ message: 'Password updated successfully' });
+      const hashedPassword = await bcrypt.hash(password, 10);
+      updateData.password = hashedPassword;
+    }
+
+    // If nothing provided
+    if (Object.keys(updateData).length === 0) {
+      return res.status(400).json({
+        message: 'Please provide name or password to update.',
+      });
+    }
+
+    await db.collection('users').doc(req.user.id).update(updateData);
+
+    res.status(200).json({
+      message: 'Profile updated successfully',
+    });
+
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({
+      error: error.message,
+    });
   }
 };
 
