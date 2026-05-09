@@ -112,6 +112,39 @@ exports.getAllUsers = async (req, res) => {
   }
 };
 
+exports.searchUsers = async (req, res) => {
+  try {
+    const { query, role } = req.query;
+
+    let usersQuery = db.collection('users');
+    if (role) {
+      if (![ROLES.STUDENT, ROLES.TEACHER, ROLES.ADMIN].includes(role)) {
+        return res.status(400).json({ message: 'Invalid role provided.' });
+      }
+      usersQuery = usersQuery.where('role', '==', role);
+    }
+
+    const snapshot = await usersQuery.get();
+    let users = snapshot.docs.map((doc) => {
+      const userData = doc.data();
+      delete userData.password;
+      return { id: doc.id, ...userData };
+    });
+
+    if (query) {
+      const lowerQuery = query.toLowerCase();
+      users = users.filter(user => 
+        (user.name && user.name.toLowerCase().includes(lowerQuery)) || 
+        (user.email && user.email.toLowerCase().includes(lowerQuery))
+      );
+    }
+
+    res.status(200).json(users);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
 // 1. Get Dashboard Statistics (Total Students, Teachers, Admins, Users)
 exports.getDashboardStats = async (req, res) => {
   try {

@@ -11,6 +11,7 @@ router.use(roleMiddleware(ROLES.ADMIN));
 router.get('/profile', adminController.getProfile);
 router.put('/profile', adminController.updateProfile);
 
+router.get('/users/search', adminController.searchUsers);
 router.get('/users', adminController.getAllUsers);
 router.post('/users', adminController.createUser);
 router.get('/dashboard/stats', adminController.getDashboardStats);
